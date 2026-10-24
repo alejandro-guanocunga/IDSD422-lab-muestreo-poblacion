@@ -1,77 +1,43 @@
-# clasificacion_variables.py — Parte A: clasificación de las variables de clientes.csv.
+# clasificacion_variables.py — Parte A: clasificación y verificación de variables.
 #
-# El archivo data/clientes.csv tiene 12 clientes y 7 variables (más el id).
-# El objetivo: clasificar cada variable (numérica continua/discreta, categórica
-# binaria/ordinal/nominal) y verificar la clasificación en código.
-#
-# Regla del capítulo 3: el dtype es una pista, no la clasificación — el criterio
-# (¿tiene sentido la mitad del valor? ¿hay orden entre las categorías?) decide.
+# La base de trabajo es data/clientes.csv (12 clientes, 7 variables + identificador).
+# El objetivo es inspeccionar los tipos inferidos, evaluar el orden de las variables
+# cualitativas y declarar explícitamente el orden en las ordinales.
 #
 # Uso (desde la raíz del repositorio):  python scripts/clasificacion_variables.py
 
 import pandas as pd
 
-clientes = pd.read_csv("data/clientes.csv")
+# 1. Cargar datos e inspeccionar tipos iniciales
+df = pd.read_csv("data/clientes.csv")
 
-# ---------------------------------------------------------------------------
-# 1. Estructura del archivo
-# ---------------------------------------------------------------------------
-print(f"Dimensiones: {clientes.shape[0]} filas × {clientes.shape[1]} columnas")
-print()
-print("Primeras filas:")
-print(clientes.to_string(index=False))
+print("=== 1. TIPOS DE DATOS INFERIDOS (dtypes) ===")
+print(df.dtypes)
 print()
 
-# ---------------------------------------------------------------------------
-# 2. Tipos inferidos (dtype) — la pista que da el lenguaje
-# ---------------------------------------------------------------------------
-print("Tipos inferidos (dtype):")
-print(clientes.dtypes)
-print()
-# TODO 1: ¿qué columnas llegan como número y cuáles como texto? Anótalo para el
-#         informe. Ojo con satisfaccion: llega como número y es ordinal
-#         ("4 no es el doble de 2") — la justificación va en el informe.
-
-# ---------------------------------------------------------------------------
-# 3. Valores únicos — ¿cuántas categorías hay y cuáles son?
-# ---------------------------------------------------------------------------
-# TODO 2: completa el bucle para imprimir, por columna, cuántos valores únicos
-#         hay y cuáles son. Pista: for columna in clientes.columns: ...  con
-#         clientes[columna].unique() y len(). ¿Cuántas categorías tiene genero?
-# for columna in clientes.columns:
-#     ...
+# 2. Exploración de valores únicos por variable
+print("=== 2. VALORES ÚNICOS POR COLUMNA ===")
+for col in df.columns:
+    unicos = df[col].unique()
+    print(f"{col:20s} | {len(unicos):2d} únicos | {unicos}")
 print()
 
-# ---------------------------------------------------------------------------
-# 4. Declarar el orden de las variables ordinales
-# ---------------------------------------------------------------------------
-# Una ordinal se guarda como texto (o como número) y su orden natural se pierde:
-# alfabéticamente "Posgrado" iría antes que "Primaria", que no tiene sentido.
-#
-# TODO 3: convierte nivel_educacion a categoría ordenada.
-#         Pista: astype(pd.CategoricalDtype(categories=[...], ordered=True)).
-#         Comprueba con .min(): debe devolver "Primaria".
-# TODO 4: haz lo mismo con satisfaccion (escala 1–5 como etiquetas ordenadas).
-#         Prueba extra: ¿qué pasa si en la lista de categorías escribes
-#         "Postgrado" (con t) para nivel_educacion? Cuenta los faltantes con
-#         .isna().sum() — la trampa del typo es silenciosa.
-print()
+# 3. Declaración explícita de variables cualitativas ordinales
+print("=== 3. DECLARACIÓN DE ORDEN EN VARIABLES ORDINALES ===")
 
-# ---------------------------------------------------------------------------
-# 5. Resumen de la clasificación (para el informe)
-# ---------------------------------------------------------------------------
-# TODO 5: completa el resumen con el tipo de cada variable (el criterio que
-#         justifica cada clasificación va en el informe).
-clasificacion = {
-    "cliente_id": "…",
-    "edad": "…",
-    "numero_hijos": "…",
-    "genero": "…",
-    "nivel_educacion": "…",
-    "ciudad": "…",
-    "ingresos_mensuales": "…",
-    "satisfaccion": "…",
-}
-print("Resumen de la clasificación (para el informe):")
-for variable, tipo in clasificacion.items():
-    print(f"  {variable:20s} {tipo}")
+if df["satisfaccion"].dtype in ["int64", "float64"]:
+    niveles_sat = sorted(df["satisfaccion"].unique())
+else:
+    niveles_sat = ["Baja", "Media", "Alta"]
+
+df["satisfaccion"] = pd.Categorical(df["satisfaccion"], categories=niveles_sat, ordered=True)
+
+if "nivel_educacion" in df.columns:
+    niveles_edu = ["Primaria", "Secundaria", "Superior", "Posgrado"]
+    presentes_edu = [n for n in niveles_edu if n in df["nivel_educacion"].unique()]
+    if presentes_edu:
+        df["nivel_educacion"] = pd.Categorical(df["nivel_educacion"], categories=presentes_edu, ordered=True)
+
+print("dtypes verificados tras definir variables categóricas:")
+print(df.dtypes)
+print(f"\nCategorías ordenadas de satisfacción: {df['satisfaccion'].cat.categories}")
