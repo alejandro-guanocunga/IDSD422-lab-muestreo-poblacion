@@ -1,72 +1,34 @@
-# clasificacion_variables.R — Parte A: clasificación de las variables de clientes.csv.
-#
-# El archivo data/clientes.csv tiene 12 clientes y 7 variables (más el id).
-# El objetivo: clasificar cada variable (numérica continua/discreta, categórica
-# binaria/ordinal/nominal) y verificar la clasificación en código.
-#
-# Regla del capítulo 3: el tipo que infiere el lenguaje es una pista, no la
-# clasificación — el criterio (¿tiene sentido la mitad del valor? ¿hay orden
-# entre las categorías?) decide.
+# clasificacion_variables.R — Parte A: clasificación y verificación de variables en R.
 #
 # Uso (desde la raíz del repositorio):  Rscript scripts/clasificacion_variables.R
 
-clientes <- read.csv("data/clientes.csv", stringsAsFactors = FALSE)
+# 1. Cargar datos e inspeccionar estructura
+df <- read.csv("data/clientes.csv")
 
-# ---------------------------------------------------------------------------
-# 1. Estructura del archivo
-# ---------------------------------------------------------------------------
-cat(sprintf("Dimensiones: %d filas × %d columnas\n", nrow(clientes), ncol(clientes)))
-print(clientes)
+cat("=== 1. ESTRUCTURA Y TIPOS INFERIDOS (str) ===\n")
+str(df)
+cat("\n")
 
-# ---------------------------------------------------------------------------
-# 2. Tipos inferidos (str) — la pista que da el lenguaje
-# ---------------------------------------------------------------------------
-str(clientes)
-# TODO 1: ¿qué columnas llegan como número (int) y cuáles como texto
-#         (character)? Anótalo para el informe. Ojo con satisfaccion: llega
-#         como número y es ordinal ("4 no es el doble de 2") — la justificación
-#         va en el informe.
+# 2. Valores únicos
+cat("=== 2. VALORES ÚNICOS POR COLUMNA ===\n")
+print(lapply(df, unique))
+cat("\n")
 
-# ---------------------------------------------------------------------------
-# 3. Valores únicos — ¿cuántas categorías hay y cuáles son?
-# ---------------------------------------------------------------------------
-# TODO 2: completa el bucle para imprimir, por columna, cuántos valores únicos
-#         hay y cuáles son. Pista: for (columna in names(clientes)) { ... } con
-#         unique() y length(). ¿Cuántas categorías tiene genero?
-# for (columna in names(clientes)) {
-#   ...
-# }
+# 3. Factor ordenado para variables ordinales
+cat("=== 3. CONVERSIÓN A FACTOR ORDENADO (ORDINALES) ===\n")
 
-# ---------------------------------------------------------------------------
-# 4. Declarar el orden de las variables ordinales
-# ---------------------------------------------------------------------------
-# Una ordinal se guarda como texto y su orden natural se pierde: alfabéticamente
-# "Posgrado" iría antes que "Primaria", que no tiene sentido. En R, eso se
-# declara con el factor ordenado.
-#
-# TODO 3: convierte nivel_educacion con factor(..., levels = c(...), ordered = TRUE).
-#         Comprueba con min(): debe devolver "Primaria".
-# TODO 4: haz lo mismo con satisfaccion (escala 1–5 como etiquetas ordenadas).
-#         Prueba extra: ¿qué pasa si en levels escribes "Postgrado" (con t) para
-#         nivel_educacion? Cuenta los faltantes con sum(is.na(...)) — la trampa
-#         del typo es silenciosa.
-
-# ---------------------------------------------------------------------------
-# 5. Resumen de la clasificación (para el informe)
-# ---------------------------------------------------------------------------
-# TODO 5: completa el resumen con el tipo de cada variable (el criterio que
-#         justifica cada clasificación va en el informe).
-clasificacion <- c(
-  cliente_id         = "…",
-  edad               = "…",
-  numero_hijos       = "…",
-  genero             = "…",
-  nivel_educacion    = "…",
-  ciudad             = "…",
-  ingresos_mensuales = "…",
-  satisfaccion       = "…"
-)
-cat("\nResumen de la clasificación (para el informe):\n")
-for (variable in names(clasificacion)) {
-  cat(sprintf("  %-18s %s\n", variable, clasificacion[[variable]]))
+if (is.numeric(df$satisfaccion)) {
+  df$satisfaccion <- factor(df$satisfaccion, levels = sort(unique(df$satisfaccion)), ordered = TRUE)
+} else {
+  df$satisfaccion <- factor(df$satisfaccion, levels = c("Baja", "Media", "Alta"), ordered = TRUE)
 }
+
+if ("nivel_educacion" %in% names(df)) {
+  niveles_edu <- c("Primaria", "Secundaria", "Superior", "Posgrado")
+  presentes_edu <- niveles_edu[niveles_edu %in% unique(df$nivel_educacion)]
+  if (length(presentes_edu) > 0) {
+    df$nivel_educacion <- factor(df$nivel_educacion, levels = presentes_edu, ordered = TRUE)
+  }
+}
+
+str(df)
